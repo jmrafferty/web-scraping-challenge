@@ -9,16 +9,37 @@ import time
 
 # Create master function 'scrape_mars'
 
-def scrape_marsInfo():
+def scrape_marsInfo(mongo):
 
     # Scrape the [NASA Mars News Site](https://mars.nasa.gov/news/) and collect the latest 
     # News Title and Paragraph Text. Assign the text to variables that you can reference later.
+    # executable_path = {'executable_path': 'chromedriver.exe'}
+    browser = Browser("chrome", executable_path="C:/Users/Joseph/Desktop/Data_Boot_Camp/Web/Webscraping/MongoDB/Web_Scraping_HW_Instructions/Instructions/web-scraping-challenge/chromedriver.exe", headless=False)
+    headline, teaser = scrape_news(browser)
+    scrapedata = {
+        'headline':headline,
+        'teaser':teaser,
+        'weather': mars_weather_tweet,
+        'featureimage': scrape_img(browser),
+        'marsfacts': mars_table(browser),
+        'pics': scrape_hemis(browser)}
+    
+    # Close the browser after scraping
+    browser.quit()
+    print(scrapedata)
+    #collection = mongo.db.mars_collection
+    #collection.update({}, scrapedata, upsert=True)
+    mongo.db.mars_collection.replace_one({}, scrapedata, upsert=True)
+    # Return results
+    return scrapedata
+
+def scrape_news(browser):
 
     mars_url = 'https://mars.nasa.gov/news/'
 
-    response= requests.get(mars_url)
-
-    soup = bs(response.text, 'html.parser')
+    browser.visit(mars_url)
+    html = browser.html
+    soup = bs(html, 'html.parser')
 
     title_list = []
     p_list = []
@@ -31,29 +52,60 @@ def scrape_marsInfo():
     for title in all_titles:
         try:
             mars_title = title.find('a').text
+            print("-------------------------------------------------------------------------")
+            print("mars_title")
+            print(mars_title)
+            print("-------------------------------------------------------------------------")
             title_list.append(mars_title)
-        except AttributeError as e:
-            print(e)
-        
-        
+        except AttributeError:
+            title_list.append("")
+    print("-------------------------------------------------------------------------")
+    print("title_list")
+    print(title_list)
+    print("-------------------------------------------------------------------------")    
+    p_list.append("")    
+    
     for paragraph in all_p:
         try:
             mars_p = paragraph.find('div', class_ = "rollover_description_inner").text
             p_list.append(mars_p)
-        except AttributeError as e:
-            print(e)
+        except AttributeError:
+            p_list.append("")
 
-        
+    print("-------------------------------------------------------------------------")
+    print("len(p_list)")
+    print(len(p_list))
+    print("len(title_list)")
+    print(len(title_list))
+    print("len(title_list)")
+    print(len(all_titles))
+    print("-------------------------------------------------------------------------")
+    
+
     for i in range(len(all_titles)):
         mars_news.append({"title": title_list[i], "description": p_list[i]})
 
+    first_marsNews = mars_news[1]
+    headline = first_marsNews['title']
+    teaser = first_marsNews['description']
+
+    print("-------------------------------------------------------------------------")
+    print("mars_news")
+    print(mars_news)
+    print("-------------------------------------------------------------------------")
+    print("headline")
+    print(headline)
+    print("teaser")
+    print(teaser)
+    print("-------------------------------------------------------------------------")
+    return headline, teaser
 
     #Visit the url for JPL  Space Image [here](https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars).
     #Use splinter to navigate the site and find the image url for the current  Mars Image and assign the 
     #url string to a variable called `_image_url`.
 
-    executable_path = {'executable_path': 'chromedriver.exe'}
-    browser = Browser('chrome', **executable_path, headless=False)
+    
+def scrape_img(browser):
 
     marsImage_url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
 
@@ -72,13 +124,18 @@ def scrape_marsInfo():
     full_img_link = full_img.find('figure')
     img_url = "https://www.jpl.nasa.gov" + full_img_link.a.img['src']
 
+    print("-------------------------------------------------------------------------")
+    print("img_url")
+    print(img_url)
+    print("-------------------------------------------------------------------------")
 
+    return img_url
+
+
+def scrape_tweet(browser):
 
     ##Visit the Mars Weather twitter account [here](https://twitter.com/marswxreport?lang=en) and scrape the latest Mars
     # weather tweet from the page. Save the tweet text for the weather report as a variable called `mars_weather`.
-
-    executable_path = {'executable_path': 'chromedriver.exe'}
-    browser = Browser('chrome', **executable_path, headless=False)
 
     marsWeather_url = 'https://twitter.com/marswxreport?lang=en'
 
@@ -87,11 +144,13 @@ def scrape_marsInfo():
     html = browser.html
     tweet_soup = bs(html, 'html.parser')
 
-    mars_weather_tweet = tweet_soup.find('div', attrs={"class": "css-901oao r-hkyrab r-1qd0xha r-a023e6 r-16dba41 r-ad9z0x r-bcqeeo r-bnwqim r-qvutc0"})
-    mars_weather_tweet2 = mars_weather_tweet.find('')
+    mars_weather_tweet = tweet_soup.find('div', attrs={"class": "tweet", "data-name": "Mars Weather"})
+    
+
+    return mars_weather_tweet
 
 
-
+def mars_table():
     
     # Visit the Mars Facts webpage [here](https://space-facts.com/mars/) and use Pandas to scrape the table containing facts about the planet including Diameter, Mass, etc.
     # Use Pandas to convert the data to a HTML table string.
@@ -102,10 +161,17 @@ def scrape_marsInfo():
     mars_df.columns=['description', 'value']
     mars_df.set_index('description', inplace=True)
 
-    mars_df2 = mars_df.to_dict('description')
+    print("-------------------------------------------------------------------------")
+    print("mars_df")
+    print(mars_df)
+    print("-------------------------------------------------------------------------")
 
+    #mars_df2 = mars_df.to_dict('description')
+    
 
+    return mars_df.to_html(classes="table table-striped")
 
+def scrape_hemis(browser):
 
     # Visit the USGS Astrogeology site 
     #[here](https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars) 
@@ -116,8 +182,6 @@ def scrape_marsInfo():
     #Append the dictionary with the image url string and the hemisphere title to a list. This list will contain one dictionary 
     #for each hemisphere.
 
-    executable_path = {'executable_path': 'chromedriver.exe'}
-    browser = Browser('chrome', **executable_path, headless=False)
 
     marsHemispheres_url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
 
@@ -146,23 +210,22 @@ def scrape_marsInfo():
     
         browser.back()
 
+    return hemisphere_image_urls
 
-    scrapedata = {}
-    scrapedata['headline']=headline
-    scrapedata['teaser']=teaser
-    scrapedata['weather']= mars_weather_tweet.text
-    scrapedata['featureimage']= img_url
-    scrapedata['marsfacts']= mars_df2
-    scrapedata['pics'] = hemisphere_image_urls
-        
+"""     def scrape(browser):
+        scrapedata = {}
+        scrapedata['headline']=headline
+        scrapedata['teaser']=teaser
+        scrapedata['weather']= mars_weather_tweet.text
+        scrapedata['featureimage']= img_url
+        scrapedata['marsfacts']= mars_df2
+        scrapedata['pics'] = hemisphere_image_urls
+    
 
-    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-    mydb = myclient["scrapeMars_DB"]
-    collection = mydb.mars_collection
-    collection.update({}, scrapedata, upsert=True)
+        myclient = PyMongo.MongoClient("mongodb://localhost:27017/")
+        mydb = myclient["scrapeMars_DB"]
+        collection = mydb.mars_collection
+        collection.update({}, scrapedata, upsert=True) """
 
-    # Close the browser after scraping
-    browser.quit()
-
-    # Return results
-    return costa_data
+# if __name__ == "__main__":
+   # print(scrape_marsInfo())
