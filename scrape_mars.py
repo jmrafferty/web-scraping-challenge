@@ -16,12 +16,13 @@ def scrape_marsInfo(mongo):
     # executable_path = {'executable_path': 'chromedriver.exe'}
     browser = Browser("chrome", executable_path="C:/Users/Joseph/Desktop/Data_Boot_Camp/Web/Webscraping/MongoDB/Web_Scraping_HW_Instructions/Instructions/web-scraping-challenge/chromedriver.exe", headless=False)
     headline, teaser = scrape_news(browser)
+
     scrapedata = {
         'headline':headline,
         'teaser':teaser,
-        'weather': mars_weather_tweet,
+        'weather': scrape_tweet(browser),
         'featureimage': scrape_img(browser),
-        'marsfacts': mars_table(browser),
+        'marsfacts': mars_table(),
         'pics': scrape_hemis(browser)}
     
     # Close the browser after scraping
@@ -144,10 +145,12 @@ def scrape_tweet(browser):
     html = browser.html
     tweet_soup = bs(html, 'html.parser')
 
-    mars_weather_tweet = tweet_soup.find('div', attrs={"class": "tweet", "data-name": "Mars Weather"})
+    mars_weather_tweet = tweet_soup.find('div', attrs={"class": "css-901oao r-hkyrab r-1qd0xha r-a023e6 r-16dba41 r-ad9z0x r-bcqeeo r-bnwqim r-qvutc0"})
+
+    #mars_weather_tweet = tweet_soup.find('div', attrs={"class": "tweet", "data-name": "Mars Weather"})
     
 
-    return mars_weather_tweet
+    return mars_weather_tweet.text
 
 
 def mars_table():
